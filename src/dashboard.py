@@ -20,7 +20,7 @@ customer_id = st.text_input(
 
 if st.button("Analyze Customer"):
     try:
-        response = requests.post(f"{BACKEND_URL}/predict", json={"customer_id": customer_id})
+        response = requests.post(f"{BACKEND_URL}/predict", json={"customer_unique_id": customer_id})
         
         if response.status_code == 200:
             data = response.json()
