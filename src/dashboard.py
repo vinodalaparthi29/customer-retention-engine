@@ -5,7 +5,7 @@ Connects to the FastAPI backend to display retention scores and product recommen
 import requests
 import streamlit as st
 
-API_URL = "https://new-pugs-divide.loca.lt"
+API_URL = "https://customer-retention-engine.onrender.com"
 
 st.set_page_config(page_title="Customer Retention Engine", layout="wide")
 
