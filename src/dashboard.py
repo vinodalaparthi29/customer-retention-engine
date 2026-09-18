@@ -5,7 +5,7 @@ Connects to the FastAPI backend to display retention scores and product recommen
 import requests
 import streamlit as st
 
-API_URL = "http://127.0.0.1:8000/predict"
+API_URL = "https://new-pugs-divide.loca.lt"
 
 st.set_page_config(page_title="Customer Retention Engine", layout="wide")
 
