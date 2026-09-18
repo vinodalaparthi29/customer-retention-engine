@@ -5,7 +5,7 @@ Connects to the FastAPI backend to display retention scores and product recommen
 import requests
 import streamlit as st
 
-API_URL = "https://customer-retention-engine.onrender.com"
+BACKEND_URL = "https://customer-retention-engine.onrender.com"
 
 st.set_page_config(page_title="Customer Retention Engine", layout="wide")
 
@@ -20,7 +20,7 @@ customer_id = st.text_input(
 
 if st.button("Analyze Customer"):
     try:
-        response = requests.post(API_URL, json={"customer_unique_id": customer_id})
+        response = requests.post(f"{BACKEND_URL}/predict", json={"customer_id": customer_id})
         
         if response.status_code == 200:
             data = response.json()
