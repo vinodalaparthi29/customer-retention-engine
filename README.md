@@ -1,5 +1,10 @@
 # 🛒 Smart E-Commerce Customer Retention Engine
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://vinodalaparthi29-customer-retention-engine-srcdashboard-ngoici.streamlit.app/)
+
+🔗 **Live Streamlit Dashboard:** [customer-retention-engine.streamlit.app](https://vinodalaparthi29-customer-retention-engine-srcdashboard-ngoici.streamlit.app/)  
+⚡ **FastAPI Backend (Render):** `https://customer-retention-engine.onrender.com`
+
 A full-stack, end-to-end Machine Learning solution designed for **e-commerce customer retention & repeat buyer prediction** using the Brazilian Olist E-Commerce dataset (~100k transactions).
 
 The system addresses extreme class imbalance (**98.8% one-time buyers vs. 1.2% repeat buyers**) by leveraging feature engineering, leakage-free temporal splitting, propensity ranking, and a deployed FastAPI backend connected to an interactive Streamlit dashboard.
