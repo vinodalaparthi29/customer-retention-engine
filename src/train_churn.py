@@ -36,46 +36,40 @@ FEATURES = [
 
 
 def get_models():
-    """Baseline + gradient boosting models wrapped in CalibratedClassifierCV."""
     models = {}
     
     # Logistic Regression
-    lr_pipe = Pipeline(
+    models["LogisticRegression"] = Pipeline(
         [
             ("scale", StandardScaler()),
             ("clf", LogisticRegression(max_iter=1000, class_weight="balanced")),
         ]
     )
-    models["LogisticRegression"] = CalibratedClassifierCV(estimator=lr_pipe, cv=5, method="sigmoid")
 
     # XGBoost
     try:
         from xgboost import XGBClassifier
-        xgb = XGBClassifier(
+        models["XGBoost"] = XGBClassifier(
             n_estimators=100,
             max_depth=3,
             learning_rate=0.05,
             eval_metric="logloss",
             random_state=42,
-            n_jobs=1,  # Prevents joblib core warning on Windows
         )
-        models["XGBoost"] = CalibratedClassifierCV(estimator=xgb, cv=5, method="sigmoid")
     except ImportError:
-        print("[warn] xgboost not installed")
+        pass
 
     # LightGBM
     try:
         from lightgbm import LGBMClassifier
-        lgb = LGBMClassifier(
+        models["LightGBM"] = LGBMClassifier(
             n_estimators=100, 
             learning_rate=0.05, 
             random_state=42, 
             verbose=-1,
-            n_jobs=1,
         )
-        models["LightGBM"] = CalibratedClassifierCV(estimator=lgb, cv=5, method="sigmoid")
     except ImportError:
-        print("[warn] lightgbm not installed")
+        pass
 
     return models
 
