@@ -1,33 +1,33 @@
 [
   {
     "model": "LogisticRegression",
-    "pr_auc": 0.0224,
-    "roc_auc": 0.576,
-    "f1": 0.0267,
-    "precision": 0.0137,
-    "recall": 0.4962,
+    "pr_auc": 0.0276,
+    "roc_auc": 0.581,
+    "f1": 0.0145,
+    "precision": 0.1429,
+    "recall": 0.0076,
     "confusion_matrix": [
       [
-        6383,
-        4668
+        11045,
+        6
       ],
       [
-        66,
-        65
+        130,
+        1
       ]
     ]
   },
   {
     "model": "XGBoost",
-    "pr_auc": 0.0144,
-    "roc_auc": 0.5319,
-    "f1": 0.0101,
-    "precision": 0.0149,
+    "pr_auc": 0.0306,
+    "roc_auc": 0.5887,
+    "f1": 0.0147,
+    "precision": 0.2,
     "recall": 0.0076,
     "confusion_matrix": [
       [
-        10985,
-        66
+        11047,
+        4
       ],
       [
         130,
@@ -37,19 +37,19 @@
   },
   {
     "model": "LightGBM",
-    "pr_auc": 0.0135,
-    "roc_auc": 0.496,
-    "f1": 0.026,
-    "precision": 0.087,
-    "recall": 0.0153,
+    "pr_auc": 0.0245,
+    "roc_auc": 0.5606,
+    "f1": 0.0,
+    "precision": 0.0,
+    "recall": 0.0,
     "confusion_matrix": [
       [
-        11030,
-        21
+        11050,
+        1
       ],
       [
-        129,
-        2
+        131,
+        0
       ]
     ]
   }

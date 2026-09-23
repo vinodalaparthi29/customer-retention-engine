@@ -76,13 +76,8 @@ def build_customer_features(order_level, outcome_days=180):
     """
     Collapse order-level rows into one row per customer.
 
-    LEAKAGE WARNING (this bit matters):
-    The naive definition - "churned = last purchase older than N days" - makes
-    recency_days a perfect mirror of the label, because recency IS
-    (snapshot - last purchase). A model trained that way scores PR-AUC ~1.0 and
-    has learned nothing; it has just read the answer off the feature.
-
-    Correct approach - split the timeline into two windows:
+    LEAKAGE WARNING:
+    Split the timeline into two windows:
       * OBSERVATION window  (start .. cutoff) -> all features computed here
       * OUTCOME window      (cutoff .. snapshot) -> label computed here
     A customer is churned if they bought during observation but placed NO order
@@ -102,12 +97,13 @@ def build_customer_features(order_level, outcome_days=180):
     f = pd.DataFrame(
         {
             # --- RFM core --- (recency measured up to the CUTOFF, not the snapshot)
-            "recency_days": (cutoff - g["order_purchase_timestamp"].max()).dt.days,
+            "recency_days": (cutoff - g["order_purchase_timestamp"].max()).dt.days.clip(lower=0),
             "frequency": g["order_id"].nunique(),
             "monetary": g["order_value"].sum(),
-            # --- spend shape ---
+            # --- spend shape & ratios ---
             "avg_order_value": g["order_value"].mean(),
             "total_freight": g["freight"].sum(),
+            "freight_ratio": (g["freight"].sum() / (g["order_value"].sum() + 1e-5)).round(4),
             "avg_items_per_order": g["n_items"].mean(),
             # --- delivery experience ---
             "avg_delivery_delay": g["delivery_delay_days"].mean(),
@@ -115,6 +111,7 @@ def build_customer_features(order_level, outcome_days=180):
             # --- satisfaction ---
             "avg_review_score": g["review_score"].mean(),
             "min_review_score": g["review_score"].min(),
+            "review_count": g["review_score"].count(),
             # --- tenure ---
             "customer_lifespan_days": (
                 g["order_purchase_timestamp"].max() - g["order_purchase_timestamp"].min()
@@ -126,9 +123,14 @@ def build_customer_features(order_level, outcome_days=180):
     f["churned"] = (~f.index.isin(active_later)).astype(int)
     f["is_one_time_buyer"] = (f["frequency"] == 1).astype(int)
 
+    # Fill missing values
     for col in ["avg_review_score", "min_review_score"]:
         f[col] = f[col].fillna(f[col].median())
     f["avg_delivery_delay"] = f["avg_delivery_delay"].fillna(0)
+    f["late_delivery_rate"] = f["late_delivery_rate"].fillna(0)
+    f["monetary"] = f["monetary"].fillna(0)
+    f["avg_order_value"] = f["avg_order_value"].fillna(0)
+    f["total_freight"] = f["total_freight"].fillna(0)
 
     return f.reset_index()
 
@@ -142,9 +144,10 @@ def main():
     ol.to_csv("outputs/order_level.csv", index=False)
     feats.to_csv("outputs/customer_features.csv", index=False)
 
-    print(f"order-level rows : {len(ol):,}")
-    print(f"customers        : {len(feats):,}")
-    print(f"churn rate       : {feats['churned'].mean():.1%}")
+    print(f"order-level rows   : {len(ol):,}")
+    print(f"customers          : {len(feats):,}")
+    print(f"churn rate         : {feats['churned'].mean():.1%}")
+    print(f"retained rate      : {(1 - feats['churned'].mean()):.1%}")
     print(f"one-time buyer rate: {feats['is_one_time_buyer'].mean():.1%}")
 
 

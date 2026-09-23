@@ -1,9 +1,5 @@
 """
-Trains the customer retention prediction model.
-
-Target: retained = 1 (1.2% minority class).
-Evaluating PR-AUC on retention measures the model's true capability
-to spot rare, high-value repeat customers rather than defaulting to churn.
+Trains the customer retention prediction model with probability calibration.
 """
 import json
 import os
@@ -13,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.metrics import (
     average_precision_score,
     f1_score,
@@ -22,60 +19,73 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-# Non-leaky feature set
 FEATURES = [
     "recency_days",
     "frequency",
     "monetary",
     "avg_order_value",
     "total_freight",
+    "freight_ratio",
     "avg_items_per_order",
     "avg_delivery_delay",
     "late_delivery_rate",
     "avg_review_score",
     "min_review_score",
+    "review_count",
 ]
 
 
 def get_models():
-    """Baseline + gradient boosting models."""
-    models = {
-        "LogisticRegression": Pipeline(
-            [
-                ("scale", StandardScaler()),
-                ("clf", LogisticRegression(max_iter=1000, class_weight="balanced")),
-            ]
-        )
-    }
+    """Baseline + gradient boosting models wrapped in CalibratedClassifierCV."""
+    models = {}
+    
+    # Logistic Regression
+    lr_pipe = Pipeline(
+        [
+            ("scale", StandardScaler()),
+            ("clf", LogisticRegression(max_iter=1000, class_weight="balanced")),
+        ]
+    )
+    models["LogisticRegression"] = CalibratedClassifierCV(estimator=lr_pipe, cv=5, method="sigmoid")
+
+    # XGBoost
     try:
         from xgboost import XGBClassifier
-
-        models["XGBoost"] = XGBClassifier(
-            n_estimators=300,
-            max_depth=4,
+        xgb = XGBClassifier(
+            n_estimators=100,
+            max_depth=3,
             learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
             eval_metric="logloss",
             random_state=42,
+            n_jobs=1,  # Prevents joblib core warning on Windows
         )
+        models["XGBoost"] = CalibratedClassifierCV(estimator=xgb, cv=5, method="sigmoid")
     except ImportError:
-        print("[warn] xgboost not installed - skipping")
+        print("[warn] xgboost not installed")
+
+    # LightGBM
     try:
         from lightgbm import LGBMClassifier
-
-        models["LightGBM"] = LGBMClassifier(
-            n_estimators=300, learning_rate=0.05, random_state=42, verbose=-1
+        lgb = LGBMClassifier(
+            n_estimators=100, 
+            learning_rate=0.05, 
+            random_state=42, 
+            verbose=-1,
+            n_jobs=1,
         )
+        models["LightGBM"] = CalibratedClassifierCV(estimator=lgb, cv=5, method="sigmoid")
     except ImportError:
-        print("[warn] lightgbm not installed - skipping")
+        print("[warn] lightgbm not installed")
+
     return models
 
 
-def evaluate(name, model, X_te, y_te):
-    # Predict probability of RETAINING (class 1)
+def evaluate(name, model, X_te, y_te, eval_threshold=0.10):
+    """Predicts probability of RETAINING (class 1) and evaluates metrics."""
     proba = model.predict_proba(X_te)[:, 1]
-    pred = (proba >= 0.5).astype(int)
+    
+    # Evaluate hard metrics at custom decision threshold (e.g. 10%)
+    pred = (proba >= eval_threshold).astype(int)
     
     m = {
         "model": name,
@@ -89,40 +99,31 @@ def evaluate(name, model, X_te, y_te):
     return m
 
 
-def main(apply_smote=True):
+def main():
     os.makedirs("models", exist_ok=True)
     os.makedirs("outputs", exist_ok=True)
 
     df = pd.read_csv("outputs/customer_features.csv")
     
-    # FLIP TARGET: Predict retention (the 1.2% minority class)
+    # Target: Predict retention (minority class)
     df["retained"] = (df["churned"] == 0).astype(int)
-    X, y = df[FEATURES], df["retained"]
+    
+    # Ensure all features exist in DataFrame
+    available_features = [col for col in FEATURES if col in df.columns]
+    X, y = df[available_features], df["retained"]
 
     X_tr, X_te, y_tr, y_te = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    if apply_smote:
-        try:
-            from imblearn.over_sampling import SMOTE
-
-            X_tr, y_tr = SMOTE(random_state=42).fit_resample(X_tr, y_tr)
-            print(f"SMOTE applied on 'retained' minority class -> training rows: {len(X_tr):,}")
-        except ImportError:
-            print("[warn] imbalanced-learn not installed - training without SMOTE")
-
     results, fitted = [], {}
-    from sklearn.calibration import CalibratedClassifierCV
-    for name, model in get_models().items():
-            # 1. Fit base model on SMOTE-resampled data
-        model.fit(X_tr, y_tr)
-        
-        # 2. Calibrate using the original (un-SMOTEd) validation split or cross-validation
-        calibrated_model = CalibratedClassifierCV(model, method='sigmoid', cv='prefit')
-        calibrated_model.fit(X_tr, y_tr) # Calibrates on original distribution
+    for name, calibrated_model in get_models().items():
+        # Fit calibrated model strictly on training data
+        calibrated_model.fit(X_tr, y_tr)
         
         fitted[name] = calibrated_model
+        
+        # Evaluate strictly on untouched test holdout
         r = evaluate(name, calibrated_model, X_te, y_te)
         results.append(r)
         print(
@@ -132,7 +133,7 @@ def main(apply_smote=True):
 
     best = max(results, key=lambda r: r["pr_auc"])
     joblib.dump(
-        {"model": fitted[best["model"]], "features": FEATURES, "target": "retained"},
+        {"model": fitted[best["model"]], "features": available_features, "target": "retained"},
         "models/churn_model.joblib",
     )
     json.dump(results, open("outputs/churn_metrics.json", "w"), indent=2)
