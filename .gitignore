@@ -2,9 +2,8 @@
 venv/
 .venv/
 env/
-
-# Ignore Python cache
 __pycache__/
+.pytest_cache/
+.env
+data/
 *.pyc
-
-# Ignore large output files if needed (optional)

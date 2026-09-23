@@ -8,4 +8,7 @@ fastapi
 streamlit
 requests
 matplotlib
+lightgbm
 uvicorn
+requests
+pydantic
