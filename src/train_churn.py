@@ -113,10 +113,17 @@ def main(apply_smote=True):
             print("[warn] imbalanced-learn not installed - training without SMOTE")
 
     results, fitted = [], {}
+    from sklearn.calibration import CalibratedClassifierCV
     for name, model in get_models().items():
+            # 1. Fit base model on SMOTE-resampled data
         model.fit(X_tr, y_tr)
-        fitted[name] = model
-        r = evaluate(name, model, X_te, y_te)
+        
+        # 2. Calibrate using the original (un-SMOTEd) validation split or cross-validation
+        calibrated_model = CalibratedClassifierCV(model, method='sigmoid', cv='prefit')
+        calibrated_model.fit(X_tr, y_tr) # Calibrates on original distribution
+        
+        fitted[name] = calibrated_model
+        r = evaluate(name, calibrated_model, X_te, y_te)
         results.append(r)
         print(
             f"{name:20s} PR-AUC={r['pr_auc']}  ROC-AUC={r['roc_auc']}  "

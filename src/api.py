@@ -40,9 +40,10 @@ def predict_retention(req: PredictionRequest):
     churn_prob = float(1.0 - retention_prob)
 
     # Risk Categorization
-    if retention_prob >= 0.15:
+    # Updated Risk Categorization in api.py
+    if retention_prob >= 0.60:
         risk_level = "High Retention Potential"
-    elif retention_prob >= 0.05:
+    elif retention_prob >= 0.30:
         risk_level = "Moderate Retention Potential"
     else:
         risk_level = "High Churn Risk"
