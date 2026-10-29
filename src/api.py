@@ -9,6 +9,10 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Customer Retention Engine API")
 
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 # Load model artifact and feature data on startup
 model_data = joblib.load("models/churn_model.joblib")
 model = model_data["model"]
