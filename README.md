@@ -27,7 +27,7 @@ On an extreme 1.2% minority baseline, standard accuracy (98.8%) and static 0.50 
 | Model | PR-AUC (Primary) | ROC-AUC | Recall | Precision |
 | :--- | :--- | :--- | :--- | :--- |
 | **XGBoost (Selected)** | **0.0312** | **0.5800** | **1.53%** | **8.50%** |
-| **Logistic Regression** | 0.0276 | 0.5811 | 100.0% | 1.37% |
+| **Logistic Regression** | 0.0224 | 0.5811 | 100.0% | 1.37% |
 | **LightGBM** | 0.0241 | 0.5662 | 2.29% | 3.64% |
 
 *Note: **XGBoost** achieved a PR-AUC of 0.0312, nearly **2.6x higher than random guessing baseline (0.0120)**.*
@@ -70,7 +70,7 @@ HOW TO RUN LOCALLY
     python src/train_churn.py
     3. Launch FastAPI Backend
     Bash
-    uvicorn src/api.py:app --reload
+    uvicorn src.api:app --reload --reload
     4. Launch Streamlit Dashboard
     Bash
     streamlit run src/dashboard.py
