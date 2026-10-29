@@ -20,19 +20,9 @@ features_list = model_data["features"]
 
 customer_df = pd.read_csv("outputs/customer_features.csv").set_index("customer_unique_id")
 
-
-class PredictionRequest(BaseModel):
-    customer_unique_id: str
-
-
-@app.get("/")
-def root():
-    return {"status": "online", "message": "Customer Retention Engine API Running"}
-
-
-@app.post("/predict")
-def predict_retention(req: PredictionRequest):
-    cid = req.customer_unique_id
+@app.get("/predict/{customer_id}")
+def predict_retention(customer_id: str):
+    cid = customer_id
     if cid not in customer_df.index:
         raise HTTPException(status_code=404, detail="Customer ID not found in database")
 
